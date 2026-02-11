@@ -5,6 +5,9 @@ import fastifyStatic from "@fastify/static";
 import fastifyCors from "@fastify/cors";
 import dotenv from "dotenv";
 
+// Type declarations
+import "./types/fastify";
+
 import { connectDB } from "./config/database";
 import { registerAuthRoutes } from "./routes/authRoutes";
 import { registerBlogRoutes } from "./routes/blogRoutes";
