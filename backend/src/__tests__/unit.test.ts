@@ -161,7 +161,8 @@ describe("Unit Tests - Password & Data Validation", () => {
     });
 
     test("should handle whitespace correctly", () => {
-      const text = "  word   word   word   " + Array(197).fill("word").join(" ");
+      const text =
+        "  word   word   word   " + Array(197).fill("word").join(" ");
       const readingTime = calculateReadingTime(text);
       expect(readingTime).toBeGreaterThanOrEqual(1);
     });

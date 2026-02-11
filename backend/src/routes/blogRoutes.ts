@@ -8,7 +8,7 @@ import {
   getPublishedBlogs,
   getUserBlogs,
 } from "../controllers/blogController";
-import { authMiddleware } from "../middleware/auth";
+import { ensureAuthenticated } from "../middleware/auth";
 
 export async function registerBlogRoutes(app: FastifyInstance) {
   // PUBLIC ROUTES (No auth required)
@@ -39,14 +39,18 @@ export async function registerBlogRoutes(app: FastifyInstance) {
   // POST - Create new blog
   app.post<{
     Body: { title: string; description: string; body: string; tags?: string[] };
-  }>("/api/blogs", { onRequest: [authMiddleware] }, async (request, reply) => {
-    await createBlog(request, reply);
-  });
+  }>(
+    "/api/blogs",
+    { onRequest: [ensureAuthenticated] },
+    async (request, reply) => {
+      await createBlog(request, reply);
+    },
+  );
 
   // GET - Get current user's blogs
   app.get<{ Querystring: { page?: string; limit?: string; state?: string } }>(
     "/api/blogs/user/my-blogs",
-    { onRequest: [authMiddleware] },
+    { onRequest: [ensureAuthenticated] },
     async (request, reply) => {
       await getUserBlogs(request, reply);
     },
@@ -63,7 +67,7 @@ export async function registerBlogRoutes(app: FastifyInstance) {
     };
   }>(
     "/api/blogs/:id",
-    { onRequest: [authMiddleware] },
+    { onRequest: [ensureAuthenticated] },
     async (request, reply) => {
       await updateBlog(request, reply);
     },
@@ -72,7 +76,7 @@ export async function registerBlogRoutes(app: FastifyInstance) {
   // DELETE - Delete blog (owner only)
   app.delete<{ Params: { id: string } }>(
     "/api/blogs/:id",
-    { onRequest: [authMiddleware] },
+    { onRequest: [ensureAuthenticated] },
     async (request, reply) => {
       await deleteBlog(request, reply);
     },
@@ -81,7 +85,7 @@ export async function registerBlogRoutes(app: FastifyInstance) {
   // PATCH - Update blog state (draft/published) (owner only)
   app.patch<{ Params: { id: string }; Body: { state: "draft" | "published" } }>(
     "/api/blogs/:id/state",
-    { onRequest: [authMiddleware] },
+    { onRequest: [ensureAuthenticated] },
     async (request, reply) => {
       await updateBlogState(request, reply);
     },

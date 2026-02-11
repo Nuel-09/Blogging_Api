@@ -275,7 +275,7 @@ describe("Integration Tests - API & Authorization", () => {
         ];
 
         const searchResults = blogs.filter((b) =>
-          b.title.toLowerCase().includes("react")
+          b.title.toLowerCase().includes("react"),
         );
 
         expect(searchResults.length).toBe(2);
@@ -331,7 +331,7 @@ describe("Integration Tests - API & Authorization", () => {
 
       test("missing token should be unauthorized", () => {
         const hasToken = false;
-        const isAuthorized = hasToken === true;
+        const isAuthorized = hasToken;
 
         expect(isAuthorized).toBe(false);
       });

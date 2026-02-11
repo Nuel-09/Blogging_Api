@@ -5,11 +5,13 @@ A comprehensive blogging API built with **Fastify**, **TypeScript**, and **Mongo
 ## Features
 
 ✅ **User Authentication**
+
 - JWT-based authentication with 1-hour token expiration
 - Secure password hashing with bcryptjs
 - User registration and login
 
 ✅ **Blog Management**
+
 - Create blogs in draft state
 - Publish/unpublish blogs
 - Edit and delete blogs (owner only)
@@ -19,12 +21,14 @@ A comprehensive blogging API built with **Fastify**, **TypeScript**, and **Mongo
 - Pagination support (default 20 blogs per page)
 
 ✅ **Authorization**
+
 - Only authenticated users can create blogs
 - Only blog owners can edit/delete their blogs
 - Published blogs viewable by anyone
 - Draft blogs only viewable by owner
 
 ✅ **Performance**
+
 - Indexed MongoDB queries for fast searches
 - Efficient pagination
 - Automatic read count tracking
@@ -42,6 +46,7 @@ A comprehensive blogging API built with **Fastify**, **TypeScript**, and **Mongo
 ## Installation
 
 ### Prerequisites
+
 - Node.js 16+
 - MongoDB
 - npm or yarn
@@ -49,18 +54,21 @@ A comprehensive blogging API built with **Fastify**, **TypeScript**, and **Mongo
 ### Steps
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd blogging_system/backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
    Create a `.env` file in the `backend` directory:
+
    ```env
    MONGODB_URI=mongodb://localhost:27017/blogging_system
    JWT_SECRET=your-secret-key-change-this
@@ -69,6 +77,7 @@ A comprehensive blogging API built with **Fastify**, **TypeScript**, and **Mongo
    ```
 
 4. **Start the server**
+
    ```bash
    npm run dev
    ```
@@ -80,6 +89,7 @@ A comprehensive blogging API built with **Fastify**, **TypeScript**, and **Mongo
 ### Authentication Endpoints
 
 #### Sign Up
+
 ```
 POST /api/auth/signup
 Content-Type: application/json
@@ -93,6 +103,7 @@ Content-Type: application/json
 ```
 
 **Response (201)**
+
 ```json
 {
   "statusCode": 201,
@@ -108,6 +119,7 @@ Content-Type: application/json
 ```
 
 #### Sign In
+
 ```
 POST /api/auth/signin
 Content-Type: application/json
@@ -119,6 +131,7 @@ Content-Type: application/json
 ```
 
 **Response (200)**
+
 ```json
 {
   "statusCode": 200,
@@ -134,12 +147,14 @@ Content-Type: application/json
 ```
 
 #### Get Profile
+
 ```
 GET /api/auth/profile
 Authorization: Bearer <token>
 ```
 
 **Response (200)**
+
 ```json
 {
   "statusCode": 200,
@@ -157,11 +172,13 @@ Authorization: Bearer <token>
 ### Blog Endpoints (Public)
 
 #### Get All Published Blogs
+
 ```
 GET /api/blogs?page=1&limit=20&search=react&sortBy=read_count&order=desc
 ```
 
 **Query Parameters:**
+
 - `page` - Page number (default: 1)
 - `limit` - Blogs per page (default: 20, max: 100)
 - `search` - Search by title, description, tags, or author name
@@ -169,6 +186,7 @@ GET /api/blogs?page=1&limit=20&search=react&sortBy=read_count&order=desc
 - `order` - Sort order: `asc` or `desc` (default: desc)
 
 **Response (200)**
+
 ```json
 {
   "statusCode": 200,
@@ -205,6 +223,7 @@ GET /api/blogs?page=1&limit=20&search=react&sortBy=read_count&order=desc
 ```
 
 #### Get Single Blog by ID
+
 ```
 GET /api/blogs/:id
 ```
@@ -214,6 +233,7 @@ GET /api/blogs/:id
 ### Blog Endpoints (Protected - Requires Authentication)
 
 #### Create Blog
+
 ```
 POST /api/blogs
 Authorization: Bearer <token>
@@ -228,6 +248,7 @@ Content-Type: application/json
 ```
 
 **Response (201)**
+
 ```json
 {
   "statusCode": 201,
@@ -252,12 +273,14 @@ Content-Type: application/json
 ```
 
 #### Get My Blogs
+
 ```
 GET /api/blogs/user/my-blogs?page=1&limit=20&state=draft
 Authorization: Bearer <token>
 ```
 
 **Query Parameters:**
+
 - `page` - Page number (default: 1)
 - `limit` - Blogs per page (default: 20, max: 100)
 - `state` - Filter by state: `draft` or `published` (optional)
@@ -265,6 +288,7 @@ Authorization: Bearer <token>
 **Response (200)** - Same format as "Get All Published Blogs"
 
 #### Update Blog
+
 ```
 PUT /api/blogs/:id
 Authorization: Bearer <token>
@@ -281,6 +305,7 @@ Content-Type: application/json
 **Note:** Owner only. All fields are optional. Reading time is recalculated if body is updated.
 
 **Response (200)**
+
 ```json
 {
   "statusCode": 200,
@@ -294,6 +319,7 @@ Content-Type: application/json
 ```
 
 #### Delete Blog
+
 ```
 DELETE /api/blogs/:id
 Authorization: Bearer <token>
@@ -302,6 +328,7 @@ Authorization: Bearer <token>
 **Note:** Owner only. Works for both draft and published blogs.
 
 **Response (200)**
+
 ```json
 {
   "statusCode": 200,
@@ -313,6 +340,7 @@ Authorization: Bearer <token>
 ```
 
 #### Update Blog State
+
 ```
 PATCH /api/blogs/:id/state
 Authorization: Bearer <token>
@@ -326,6 +354,7 @@ Content-Type: application/json
 **Note:** Owner only. Changes blog state between `draft` and `published`.
 
 **Response (200)**
+
 ```json
 {
   "statusCode": 200,
@@ -341,6 +370,7 @@ Content-Type: application/json
 ## Data Models
 
 ### User Model
+
 ```typescript
 {
   _id: ObjectId,
@@ -354,6 +384,7 @@ Content-Type: application/json
 ```
 
 ### Blog Model
+
 ```typescript
 {
   _id: ObjectId,
@@ -373,11 +404,13 @@ Content-Type: application/json
 ## Reading Time Calculation
 
 Reading time is automatically calculated using:
+
 - **Average Reading Speed**: 200 words per minute
 - **Formula**: `Math.ceil(wordCount / 200)`
 - **Minimum**: 1 minute
 
 ### Example
+
 - 200 words = 1 minute
 - 400 words = 2 minutes
 - 250 words = 2 minutes (rounded up)
@@ -385,6 +418,7 @@ Reading time is automatically calculated using:
 ## Error Responses
 
 ### 400 Bad Request
+
 ```json
 {
   "statusCode": 400,
@@ -394,6 +428,7 @@ Reading time is automatically calculated using:
 ```
 
 ### 401 Unauthorized
+
 ```json
 {
   "statusCode": 401,
@@ -403,6 +438,7 @@ Reading time is automatically calculated using:
 ```
 
 ### 403 Forbidden
+
 ```json
 {
   "statusCode": 403,
@@ -412,6 +448,7 @@ Reading time is automatically calculated using:
 ```
 
 ### 404 Not Found
+
 ```json
 {
   "statusCode": 404,
@@ -423,16 +460,19 @@ Reading time is automatically calculated using:
 ## Testing
 
 Run all tests:
+
 ```bash
 npm test
 ```
 
 Run tests in watch mode:
+
 ```bash
 npm run test:watch
 ```
 
 Run tests with coverage:
+
 ```bash
 npm run test:coverage
 ```
@@ -446,6 +486,7 @@ npm run test:coverage
 ## Development
 
 ### Project Structure
+
 ```
 backend/
 ├── src/
@@ -488,6 +529,7 @@ backend/
 ## Security Best Practices
 
 ✅ **Implemented:**
+
 - JWT tokens expire after 1 hour
 - Passwords are hashed with bcryptjs (10 salt rounds)
 - Unauthorized access is blocked at route level
@@ -512,12 +554,14 @@ FASTIFY_HOST      - Server host (default: 0.0.0.0)
 ## Deployment
 
 ### Build for Production
+
 ```bash
 npm run build
 npm start
 ```
 
 ### Environment Setup for Production
+
 - Use strong `JWT_SECRET`
 - Set `NODE_ENV=production`
 - Configure `MONGODB_URI` to production database
@@ -526,15 +570,19 @@ npm start
 ## Common Issues & Solutions
 
 ### "Blog with this title already exists"
+
 - Blog titles must be unique. Try a different title.
 
 ### "You can only edit your own blogs"
+
 - Only the blog owner can edit or delete their blogs.
 
 ### "Unauthorized"
+
 - Include a valid JWT token in the Authorization header: `Authorization: Bearer <token>`
 
 ### "Blog not found"
+
 - Ensure the blog ID is correct and the blog is published (if not logged in).
 
 ## Contributing
