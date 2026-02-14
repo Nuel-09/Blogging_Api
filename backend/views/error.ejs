@@ -1,0 +1,39 @@
+<%- include('layout') %>
+
+<main class="container">
+  <section class="error-page">
+    <div class="error-content">
+      <h1>❌ Error</h1>
+      <p><%= error || 'Something went wrong' %></p>
+      <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+  </section>
+</main>
+
+<%- include('footer') %>
+
+<style>
+  .error-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 50vh;
+  }
+
+  .error-content {
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .error-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #e74c3c;
+  }
+
+  .error-content p {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 2rem;
+  }
+</style>

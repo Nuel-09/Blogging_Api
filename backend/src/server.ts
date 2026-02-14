@@ -3,7 +3,9 @@ import Fastify from "fastify";
 import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import fastifyCors from "@fastify/cors";
+import fastifyView from "@fastify/view";
 import dotenv from "dotenv";
+import ejs from "ejs";
 
 // Type declarations
 import "./types/fastify";
@@ -11,6 +13,7 @@ import "./types/fastify";
 import { connectDB } from "./config/database";
 import { registerAuthRoutes } from "./routes/authRoutes";
 import { registerBlogRoutes } from "./routes/blogRoutes";
+import { registerViewRoutes } from "./routes/viewRoutes";
 
 dotenv.config();
 
@@ -37,9 +40,18 @@ const configurePlugins = async () => {
     root: path.join(__dirname, "../public"),
     prefix: "/public/",
   });
+
+  // View engine - EJS
+  await app.register(fastifyView, {
+    engine: { ejs },
+    root: path.join(__dirname, "../views"),
+  });
 };
 
 const registerRoutes = async () => {
+  // View routes - Render templates
+  await app.register(registerViewRoutes);
+
   // Auth routes
   await app.register(registerAuthRoutes);
 

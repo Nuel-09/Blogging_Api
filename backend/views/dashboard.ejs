@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Blogs - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+      <nav class="navbar-nav">
+        <a href="/" class="nav-link">Explore</a>
+        <a href="/dashboard" class="nav-link active">My Blogs</a>
+        <a href="/blogs/new" class="nav-link btn btn-primary">Write Blog</a>
+        <form method="POST" action="/api/auth/logout" style="display: inline;">
+          <button type="submit" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
+        </form>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <!-- Dashboard Header -->
+      <section class="dashboard-header">
+        <h2>My Blogs</h2>
+        <a href="/blogs/new" class="btn btn-primary">✏️ Write New Blog</a>
+      </section>
+
+      <!-- Filters -->
+      <section class="filter-section">
+        <form method="GET" class="filter-form">
+          <div class="filter-group">
+            <label for="state">Filter by State:</label>
+            <select name="state" class="filter-select">
+              <option value="">All Blogs</option>
+              <option value="draft" <%= state === 'draft' ? 'selected' : '' %>>Draft</option>
+              <option value="published" <%= state === 'published' ? 'selected' : '' %>>Published</option>
+            </select>
+            <button type="submit" class="btn btn-secondary">Filter</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- My Blogs List -->
+      <section class="my-blogs">
+        <% if (blogs.data && blogs.data.length > 0) { %>
+          <div class="blogs-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>State</th>
+                  <th>Views</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% blogs.data.forEach(blog => { %>
+                  <tr>
+                    <td>
+                      <strong><a href="/blogs/<%= blog._id %>"><%= blog.title %></a></strong>
+                    </td>
+                    <td>
+                      <span class="badge <%= blog.state === 'published' ? 'badge-success' : 'badge-warning' %>">
+                        <%= blog.state %>
+                      </span>
+                    </td>
+                    <td><%= blog.read_count %></td>
+                    <td><%= new Date(blog.createdAt).toLocaleDateString() %></td>
+                    <td class="actions">
+                      <a href="/blogs/<%= blog._id %>/edit" class="btn btn-sm btn-primary">Edit</a>
+                      <form method="POST" action="/api/blogs/<%= blog._id %>/state" style="display: inline;">
+                        <input type="hidden" name="state" value="<%= blog.state === 'draft' ? 'published' : 'draft' %>">
+                        <button type="submit" class="btn btn-sm btn-secondary">
+                          <%= blog.state === 'draft' ? 'Publish' : 'Unpublish' %>
+                        </button>
+                      </form>
+                      <form method="POST" action="/api/blogs/<%= blog._id %>" style="display: inline;">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this blog?')">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <% if (blogs.pagination && blogs.pagination.totalPages > 1) { %>
+            <section class="pagination">
+              <% if (blogs.pagination.currentPage > 1) { %>
+                <a href="/dashboard?page=1" class="page-link">« First</a>
+                <a href="/dashboard?page=<%= blogs.pagination.currentPage - 1 %>" class="page-link">‹ Previous</a>
+              <% } %>
+              
+              <span class="page-info">
+                Page <%= blogs.pagination.currentPage %> of <%= blogs.pagination.totalPages %>
+              </span>
+              
+              <% if (blogs.pagination.currentPage < blogs.pagination.totalPages) { %>
+                <a href="/dashboard?page=<%= blogs.pagination.currentPage + 1 %>" class="page-link">Next ›</a>
+                <a href="/dashboard?page=<%= blogs.pagination.totalPages %>" class="page-link">Last »</a>
+              <% } %>
+            </section>
+          <% } %>
+        <% } else { %>
+          <div class="no-blogs">
+            <p>You haven't written any blogs yet!</p>
+            <a href="/blogs/new" class="btn btn-primary">Start Writing</a>
+          </div>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+</body>
+</html>

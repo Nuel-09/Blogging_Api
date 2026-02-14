@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2>Create Your Account</h2>
+        <p class="auth-subtitle">Join our community of writers</p>
+
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form id="signupForm" class="auth-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="first_name">First Name</label>
+              <input type="text" id="first_name" name="first_name" required placeholder="John" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="last_name">Last Name</label>
+              <input type="text" id="last_name" name="last_name" required placeholder="Doe" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required placeholder="••••••••" class="form-input">
+            <small>Password must be at least 6 characters and contain no spaces</small>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+        </form>
+
+        <p class="auth-link">
+          Already have an account? <a href="/login">Sign in here</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const first_name = document.getElementById('first_name').value;
+      const last_name = document.getElementById('last_name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ first_name, last_name, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.token) {
+          // Store token
+          localStorage.setItem('authToken', data.token);
+          window.location.href = '/dashboard';
+        } else {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'alert alert-error';
+          errorDiv.textContent = data.error || 'Signup failed';
+          const form = document.getElementById('signupForm');
+          form.parentNode.insertBefore(errorDiv, form);
+        }
+      } catch (err) {
+        alert('An error occurred. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

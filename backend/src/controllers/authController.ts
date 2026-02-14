@@ -91,6 +91,14 @@ export const signup = async (request: FastifyRequest, reply: FastifyReply) => {
     // JWT PATCH: Issue JWT
     const token = signJwt({ userId: newUser._id });
 
+    // Set authentication cookie
+    reply.cookie("authToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 3600000, // 1 hour
+    });
+
     // Return user data and JWT
     return handleSuccess(
       reply,
@@ -140,6 +148,14 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
     // JWT PATCH: Issue JWT
     const token = signJwt({ userId: user._id });
 
+    // Set authentication cookie
+    reply.cookie("authToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 3600000, // 1 hour
+    });
+
     // Return user data and JWT
     return handleSuccess(reply, {
       _id: user._id,
@@ -155,6 +171,8 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
 
 // LOGOUT - End session
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
+  // Clear authentication cookie
+  reply.clearCookie("authToken");
   // JWT PATCH: No-op for JWT logout (client just deletes token)
   return handleSuccess(reply, { message: "Logged out successfully" });
 };

@@ -1,11 +1,19 @@
-# Testing Documentation
+# Testing Documentation - BlogHub
 
-This document outlines all test cases for the Blogging API system.
+This document outlines all test cases for the BlogHub blogging platform.
+
+## Test Overview
+
+```
+✅ Test Suites: 2 passed, 2 total
+✅ Tests:       44 passed, 44 total
+⏱️  Time:        ~3 seconds
+```
 
 ## Test Structure
 
-- **Unit Tests** (`unit.test.ts`) - Password hashing, validation logic, reading time calculations
-- **Integration Tests** (`integration.test.ts`) - API endpoints, authorization, pagination, search, and sorting
+- **Unit Tests** (19 tests) - Validation, calculations, utilities
+- **Integration Tests** (25 tests) - API endpoints, authorization, workflows
 
 ## Running Tests
 
@@ -18,36 +26,65 @@ npm run test:watch
 
 # Coverage report
 npm run test:coverage
+
+# Unit tests only
+npm run test:unit
+
+# Integration tests only
+npm run test:integration
 ```
 
-## Unit Tests
+---
 
-### Password Hashing Tests
+## Unit Tests (19 Total)
 
-- ✅ Should hash password correctly
-- ✅ Should compare password with hash correctly
-- ✅ Should not match wrong password
+Location: `src/__tests__/unit.test.ts`
 
-### Email Validation Tests
+### Password & Security (3 tests)
 
-- ✅ Valid email format should pass regex
-- ✅ Invalid email format should fail regex
+- ✅ Password hashing with bcryptjs
+- ✅ Password comparison with hash
+- ✅ Wrong password fails verification
 
-### Password Validation Tests
+### Email Validation (2 tests)
 
-- ✅ Password with less than 6 characters should fail
-- ✅ Password with 6+ characters should pass
+- ✅ Valid email format accepted
+- ✅ Invalid email format rejected
 
-### User Field Validation Tests
+### User Field Validation (4 tests)
 
-- ✅ first_name and last_name between 2-30 characters pass
-- ✅ Names that are too short or too long fail
-- ✅ Names with special characters fail
+- ✅ First name 2-30 characters accepted
+- ✅ Last name 2-30 characters accepted
+- ✅ Names with special characters rejected
+- ✅ Names with spaces at edges rejected
 
-### Blog Field Validation Tests
+### Blog Field Validation (4 tests)
 
-- ✅ Title between 5-200 characters passes
-- ✅ Titles that are too short or too long fail
+- ✅ Title validation (5-200 chars)
+- ✅ Description validation (max 500)
+- ✅ Tags array validation (max 10)
+- ✅ Body text validation
+
+### Reading Time Calculation (2 tests)
+
+- ✅ Correct reading time calculation
+- ✅ Minimum reading time enforced (1 min)
+
+### JWT Utilities (4 tests)
+
+- ✅ JWT token generation
+- ✅ JWT token verification
+- ✅ Expired token handling
+- ✅ Invalid token rejection
+
+---
+
+## Integration Tests (25 Total)
+
+Location: `src/__tests__/integration.test.ts`
+
+### Authentication Endpoints (5 tests)
+
 - ✅ Description between 10-500 characters passes
 - ✅ Descriptions that are too short or too long fail
 - ✅ Body must be at least 50 characters

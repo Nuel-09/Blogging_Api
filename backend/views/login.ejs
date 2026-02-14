@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2>Welcome Back</h2>
+        <p class="auth-subtitle">Sign in to your BlogHub account</p>
+
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form id="loginForm" class="auth-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required placeholder="••••••••" class="form-input">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+        </form>
+
+        <p class="auth-link">
+          Don't have an account? <a href="/signup">Sign up here</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.token) {
+          // Store token
+          localStorage.setItem('authToken', data.token);
+          window.location.href = '/dashboard';
+        } else {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'alert alert-error';
+          errorDiv.textContent = data.error || 'Login failed';
+          const form = document.getElementById('loginForm');
+          form.parentNode.insertBefore(errorDiv, form);
+        }
+      } catch (err) {
+        alert('An error occurred. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

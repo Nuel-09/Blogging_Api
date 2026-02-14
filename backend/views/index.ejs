@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+      <nav class="navbar-nav">
+        <a href="/" class="nav-link active">Explore</a>
+        <% if (user) { %>
+          <a href="/dashboard" class="nav-link">My Blogs</a>
+          <a href="/blogs/new" class="nav-link btn btn-primary">Write Blog</a>
+          <form method="POST" action="/api/auth/logout" style="display: inline;">
+            <button type="submit" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="nav-link">Login</a>
+          <a href="/signup" class="nav-link btn btn-primary">Sign Up</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <!-- Hero Section -->
+      <section class="hero">
+        <h2>Latest Articles</h2>
+        <p>Discover amazing stories and insights from our community</p>
+      </section>
+
+      <!-- Search & Filter -->
+      <section class="search-section">
+        <form method="GET" class="search-form">
+          <div class="search-group">
+            <input type="text" name="search" placeholder="Search by title, tags, or author..." value="<%= query.search || '' %>" class="search-input">
+            <select name="sortBy" class="sort-select">
+              <option value="createdAt" <%= query.sortBy === 'createdAt' ? 'selected' : '' %>>Newest First</option>
+              <option value="read_count" <%= query.sortBy === 'read_count' ? 'selected' : '' %>>Most Read</option>
+              <option value="reading_time" <%= query.sortBy === 'reading_time' ? 'selected' : '' %>>Reading Time</option>
+            </select>
+            <select name="order" class="order-select">
+              <option value="desc" <%= query.order === 'desc' ? 'selected' : '' %>>Descending</option>
+              <option value="asc" <%= query.order === 'asc' ? 'selected' : '' %>>Ascending</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Blog Grid -->
+      <section class="blogs-grid">
+        <% if (blogs.data && blogs.data.length > 0) { %>
+          <% blogs.data.forEach(blog => { %>
+            <article class="blog-card">
+              <div class="blog-card-header">
+                <h3><a href="/blogs/<%= blog._id %>"><%= blog.title %></a></h3>
+              </div>
+              <div class="blog-card-body">
+                <p class="description"><%= blog.description %></p>
+              </div>
+              <div class="blog-card-footer">
+                <div class="blog-meta">
+                  <span class="author">By <strong><%= blog.author.first_name %> <%= blog.author.last_name %></strong></span>
+                  <span class="date"><%= new Date(blog.createdAt).toLocaleDateString() %></span>
+                </div>
+                <div class="blog-stats">
+                  <span class="read-count">👁️ <%= blog.read_count %> reads</span>
+                  <span class="reading-time">⏱️ <%= blog.reading_time %> min read</span>
+                </div>
+                <div class="blog-tags">
+                  <% if (blog.tags && blog.tags.length > 0) { %>
+                    <% blog.tags.forEach(tag => { %>
+                      <a href="/?search=<%= encodeURIComponent(tag) %>" class="tag"><%= tag %></a>
+                    <% }); %>
+                  <% } %>
+                </div>
+              </div>
+            </article>
+          <% }); %>
+        <% } else { %>
+          <div class="no-blogs">
+            <p>No blogs found. Try a different search!</p>
+          </div>
+        <% } %>
+      </section>
+
+      <!-- Pagination -->
+      <% if (blogs.pagination && blogs.pagination.totalPages > 1) { %>
+        <section class="pagination">
+          <% if (blogs.pagination.currentPage > 1) { %>
+            <a href="/?page=1<%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %>" class="page-link">« First</a>
+            <a href="/?page=<%= blogs.pagination.currentPage - 1 %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %>" class="page-link">‹ Previous</a>
+          <% } %>
+          
+          <span class="page-info">
+            Page <%= blogs.pagination.currentPage %> of <%= blogs.pagination.totalPages %>
+          </span>
+          
+          <% if (blogs.pagination.currentPage < blogs.pagination.totalPages) { %>
+            <a href="/?page=<%= blogs.pagination.currentPage + 1 %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %>" class="page-link">Next ›</a>
+            <a href="/?page=<%= blogs.pagination.totalPages %><%= query.search ? '&search=' + encodeURIComponent(query.search) : '' %>" class="page-link">Last »</a>
+          <% } %>
+        </section>
+      <% } %>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+</body>
+</html>

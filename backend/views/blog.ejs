@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= blog.title %> - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+      <nav class="navbar-nav">
+        <a href="/" class="nav-link">Explore</a>
+        <% if (user) { %>
+          <a href="/dashboard" class="nav-link">My Blogs</a>
+          <a href="/blogs/new" class="nav-link btn btn-primary">Write Blog</a>
+          <form method="POST" action="/api/auth/logout" style="display: inline;">
+            <button type="submit" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="nav-link">Login</a>
+          <a href="/signup" class="nav-link btn btn-primary">Sign Up</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <article class="blog-article">
+        <!-- Article Header -->
+        <header class="article-header">
+          <h1><%= blog.title %></h1>
+          <div class="article-meta">
+            <div class="author-info">
+              <strong><%= blog.author.first_name %> <%= blog.author.last_name %></strong>
+              <span class="date"><%= new Date(blog.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></span>
+            </div>
+            <div class="article-stats">
+              <span class="read-count">👁️ <%= blog.read_count %> reads</span>
+              <span class="reading-time">⏱️ <%= blog.reading_time %> min read</span>
+            </div>
+          </div>
+          <p class="article-description"><em><%= blog.description %></em></p>
+        </header>
+
+        <!-- Article Tags -->
+        <% if (blog.tags && blog.tags.length > 0) { %>
+          <div class="article-tags">
+            <% blog.tags.forEach(tag => { %>
+              <a href="/?search=<%= encodeURIComponent(tag) %>" class="tag"><%= tag %></a>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <!-- Article Body -->
+        <div class="article-body">
+          <%- blog.body.split('\n').map(line => '<p>' + line + '</p>').join('') %>
+        </div>
+
+        <!-- Article Actions -->
+        <% if (user && user._id === blog.author._id.toString()) { %>
+          <div class="article-actions">
+            <a href="/blogs/<%= blog._id %>/edit" class="btn btn-primary">Edit</a>
+            <form method="POST" action="/api/blogs/<%= blog._id %>" style="display: inline;">
+              <input type="hidden" name="_method" value="DELETE">
+              <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+            </form>
+          </div>
+        <% } %>
+      </article>
+
+      <!-- Back Link -->
+      <div class="back-link">
+        <a href="/">← Back to All Blogs</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+</body>
+</html>

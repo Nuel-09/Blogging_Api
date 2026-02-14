@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+      <nav class="navbar-nav">
+        <a href="/" class="nav-link">Explore</a>
+        <% if (user) { %>
+          <a href="/dashboard" class="nav-link">My Blogs</a>
+          <a href="/blogs/new" class="nav-link btn btn-primary">Write Blog</a>
+          <form method="POST" action="/api/auth/logout" style="display: inline;">
+            <button type="submit" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="nav-link">Login</a>
+          <a href="/signup" class="nav-link btn btn-primary">Sign Up</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <%- body %>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Write New Blog - BlogHub</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <h1><a href="/">📝 BlogHub</a></h1>
+      </div>
+      <nav class="navbar-nav">
+        <a href="/" class="nav-link">Explore</a>
+        <a href="/dashboard" class="nav-link">My Blogs</a>
+        <a href="/blogs/new" class="nav-link btn btn-primary active">Write Blog</a>
+        <form method="POST" action="/api/auth/logout" style="display: inline;">
+          <button type="submit" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
+        </form>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <section class="editor-section">
+        <h2>Write a New Blog</h2>
+
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form method="POST" action="/api/blogs" class="blog-form">
+          <div class="form-group">
+            <label for="title">Blog Title</label>
+            <input type="text" id="title" name="title" required maxlength="200" placeholder="Enter an engaging title..." class="form-input form-lg">
+            <small>5-200 characters</small>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description" required maxlength="500" placeholder="Brief summary of your blog..." class="form-input form-lg">
+            <small>10-500 characters</small>
+          </div>
+
+          <div class="form-group">
+            <label for="body">Blog Content</label>
+            <textarea id="body" name="body" required rows="15" placeholder="Write your blog content here..." class="form-textarea"></textarea>
+            <small>Minimum 50 characters. Estimated reading time will be calculated automatically.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="tags">Tags (comma-separated)</label>
+            <input type="text" id="tags" name="tags" placeholder="javascript, web, tutorial" class="form-input">
+            <small>Max 10 tags. Separate with commas.</small>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" name="action" value="save" class="btn btn-primary">Save as Draft</button>
+            <button type="submit" name="action" value="publish" class="btn btn-success">Publish Now</button>
+            <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // Auto-calculate reading time
+    document.getElementById('body').addEventListener('input', function() {
+      const words = this.value.trim().split(/\s+/).length;
+      const readingTime = Math.ceil(words / 200);
+      console.log(`Estimated reading time: ${Math.max(1, readingTime)} minutes`);
+    });
+  </script>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
+    </div>
+  </footer>
+</body>
+</html>
