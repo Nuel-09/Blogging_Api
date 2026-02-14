@@ -2,7 +2,7 @@
 
 A production-ready blogging platform with full authentication, CRUD operations, advanced search, and server-rendered UI. Built with Fastify, MongoDB, TypeScript, and EJS.
 
-**Status**: ✅ Complete | **Tests**: 44/44 passing | **TypeScript**: Zero errors
+**Status**: ✅ Complete | **Tests**: 58/58 passing | **TypeScript**: Zero errors
 
 ---
 
