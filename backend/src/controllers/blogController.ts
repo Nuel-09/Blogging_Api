@@ -259,25 +259,35 @@ export const deleteBlog = async (
 ) => {
   try {
     const userId = (request.user as any)?.userId;
+    console.log("🗑️ DELETE request - userId:", userId);
+    console.log("🗑️ Request user object:", request.user as any);
+
     if (!userId) {
+      console.log("❌lear No userId found - returning 401");
       return handleError(reply, { message: "Unauthorized" }, 401);
     }
 
     const { id } = request.params as { id: string };
+    console.log("🗑️ Deleting blog ID:", id);
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log("❌ Invalid ObjectId format");
       return handleError(reply, { message: "Invalid blog ID" }, 400);
     }
 
     // Find blog
     const blog = await Blog.findById(id);
     if (!blog) {
+      console.log("❌ Blog not found");
       return handleError(reply, { message: "Blog not found" }, 404);
     }
 
+    console.log("✅ Blog found, checking ownership...");
+
     // Check ownership
     if (!isOwner(blog.author, userId)) {
+      console.log("❌ User is not the owner");
       return handleError(
         reply,
         { message: "You can only delete your own blogs" },
@@ -287,7 +297,7 @@ export const deleteBlog = async (
 
     // Delete blog
     await Blog.findByIdAndDelete(id);
-
+    console.log("✅ Blog deleted successfully");
     return handleSuccess(reply, { message: "Blog deleted successfully" });
   } catch (error) {
     return handleError(reply, error);

@@ -17,9 +17,7 @@
         <% if (user) { %>
           <a href="/dashboard" class="nav-link">My Blogs</a>
           <a href="/blogs/new" class="nav-link btn btn-primary">Write Blog</a>
-          <form method="POST" action="/api/auth/logout" style="display: inline;">
-            <button type="submit" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
-          </form>
+          <button onclick="handleLogout()" class="nav-link btn btn-logout">Logout (<%= user.first_name %>)</button>
         <% } else { %>
           <a href="/login" class="nav-link">Login</a>
           <a href="/signup" class="nav-link btn btn-primary">Sign Up</a>
@@ -118,5 +116,27 @@
       <p>&copy; 2026 BlogHub. Built with ❤️ for writers.</p>
     </div>
   </footer>
+
+  <script>
+    async function handleLogout() {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({})
+        });
+        
+        if (response.ok) {
+          window.location.href = '/';
+        } else {
+          alert('Logout failed');
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+        alert('An error occurred during logout');
+      }
+    }
+  </script>
 </body>
 </html>

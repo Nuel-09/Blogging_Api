@@ -59,28 +59,38 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       
+      console.log('🔐 Login form submitted with:', email);
+      
       try {
+        console.log('📤 Sending login request...');
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ email, password })
         });
         
+        console.log('📥 Response status:', response.status, response.statusText);
         const data = await response.json();
+        console.log('📦 Response data:', data);
         
-        if (response.ok && data.token) {
-          // Store token
-          localStorage.setItem('authToken', data.token);
-          window.location.href = '/dashboard';
+        if (response.ok && data.success) {
+          console.log('✅ Login successful! Redirecting to dashboard...');
+          // Cookie is automatically set, just redirect to dashboard
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 500);
         } else {
+          console.error('❌ Login failed:', data.error || data.data?.error);
           const errorDiv = document.createElement('div');
           errorDiv.className = 'alert alert-error';
-          errorDiv.textContent = data.error || 'Login failed';
+          errorDiv.textContent = data.data?.error || data.error || 'Login failed';
           const form = document.getElementById('loginForm');
           form.parentNode.insertBefore(errorDiv, form);
         }
       } catch (err) {
-        alert('An error occurred. Please try again.');
+        console.error('💥 Error occurred:', err);
+        alert('An error occurred. Please try again. Check console for details.');
       }
     });
   </script>

@@ -18,8 +18,8 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
 
   // Protected routes (authentication required)
 
-  // Logout - End session
-  app.post("/api/auth/logout", { preHandler: ensureAuthenticated }, logout);
+  // Logout - End session (public route - clears cookie)
+  app.post("/api/auth/logout", logout);
 
   // Get Profile - Get current user info
   app.get("/api/auth/profile", { preHandler: ensureAuthenticated }, getProfile);

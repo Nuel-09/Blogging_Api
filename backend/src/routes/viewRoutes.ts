@@ -13,21 +13,36 @@ const getUser = async (request: FastifyRequest) => {
     const auth = (request.headers["authorization"] || "") as string;
     if (auth.startsWith("Bearer ")) {
       token = auth.split(" ")[1];
+      console.log("🔑 Token found in Authorization header");
     }
 
     // Fall back to cookie if no Authorization header
     if (!token) {
       token = (request.cookies.authToken || null) as string | null;
+      if (token) {
+        console.log("🍪 Token found in cookie");
+      } else {
+        console.log("⚠️ No token found in Authorization header or cookies");
+      }
     }
 
     if (!token) return null;
 
     const payload = verifyJwt(token);
-    if (!payload || typeof payload !== "object" || !payload.userId) return null;
+    if (!payload || typeof payload !== "object" || !payload.userId) {
+      console.log("❌ Token verification failed");
+      return null;
+    }
 
     const user = await User.findById(payload.userId).select("-password");
+    if (user) {
+      console.log("✅ User found:", user.email);
+    } else {
+      console.log("❌ User not found in database");
+    }
     return user ? { ...user.toObject(), _id: user._id.toString() } : null;
-  } catch {
+  } catch (err) {
+    console.error("💥 Error in getUser:", err);
     return null;
   }
 };
@@ -223,8 +238,13 @@ export async function registerViewRoutes(app: FastifyInstance) {
     "/dashboard",
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
+        console.log("🔍 Dashboard route accessed");
+        console.log("📍 Cookies:", request.cookies);
         const user = await getUser(request);
+        console.log("👤 User found:", user ? `${user.first_name} ${user.last_name}` : "No user");
+        
         if (!user) {
+          console.log("❌ No user found, redirecting to login");
           return reply.redirect("/login");
         }
 

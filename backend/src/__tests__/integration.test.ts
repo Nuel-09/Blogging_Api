@@ -1,8 +1,76 @@
-describe("Integration Tests - API & Authorization", () => {
+import Fastify from "fastify";
+import fastifyCookie from "@fastify/cookie";
+import fastifyStatic from "@fastify/static";
+import fastifyCors from "@fastify/cors";
+import fastifyView from "@fastify/view";
+import ejs from "ejs";
+import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import path from "path";
+
+import { registerAuthRoutes } from "../routes/authRoutes";
+import { registerBlogRoutes } from "../routes/blogRoutes";
+
+let app: any;
+let mongoServer: MongoMemoryServer;
+let authToken: string;
+let userId: string;
+let blogId: string;
+
+const testUser = {
+  email: "testuser@example.com",
+  password: "TestPassword123",
+  first_name: "Test",
+  last_name: "User",
+};
+
+const testBlog = {
+  title: "Integration Test Blog",
+  description:
+    "This is a test blog description for integration testing purposes",
+  body: "This is a comprehensive test blog post with actual meaningful content. We are testing the reading time calculation and other features. The blog should have enough words to calculate reading time correctly and demonstrate all functionality properly in the test suite.",
+  tags: ["testing", "integration"],
+};
+
+describe("Integration Tests - Full API Endpoints", () => {
   // Setup - run once before all integration tests
-  beforeAll(() => {
-    console.log("🟢 Starting integration tests");
-  });
+  beforeAll(async () => {
+    console.log("🟢 Starting integration tests with in-memory MongoDB");
+
+    // Start in-memory MongoDB
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+
+    // Connect mongoose to in-memory database
+    await mongoose.connect(mongoUri);
+
+    // Create Fastify app
+    app = Fastify({
+      logger: false,
+    });
+
+    // Register plugins
+    await app.register(fastifyCookie);
+    await app.register(fastifyCors, {
+      origin: ["http://localhost:5000", "http://localhost:3000"],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    });
+
+    // View engine
+    await app.register(fastifyView, {
+      engine: { ejs },
+      root: path.join(__dirname, "../../views"),
+    });
+
+    // Register routes
+    await registerAuthRoutes(app);
+    await registerBlogRoutes(app);
+
+    // Start server
+    await app.listen({ port: 5001, host: "0.0.0.0" });
+    console.log("✅ Test server running on port 5001");
+  }, 60000); // 60 second timeout for MongoDB download
 
   // Run before each test to ensure fresh state
   beforeEach(() => {
@@ -15,326 +83,454 @@ describe("Integration Tests - API & Authorization", () => {
   });
 
   // Cleanup - run once after all integration tests
-  afterAll(() => {
+  afterAll(async () => {
+    if (app) {
+      await app.close();
+    }
+    if (mongoose.connection.readyState) {
+      await mongoose.disconnect();
+    }
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
     console.log("🔴 All integration tests finished\n");
+  }, 30000); // 30 second timeout for cleanup
+
+  describe("Authentication Endpoints", () => {
+    test("POST /api/auth/signup - Should create new user account", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/signup",
+        payload: testUser,
+      });
+
+      expect(response.statusCode).toBe(201);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data).toHaveProperty("_id");
+      expect(data.data).toHaveProperty("token");
+      expect(data.data.email).toBe(testUser.email);
+      userId = data.data._id;
+      authToken = data.data.token;
+    }, 10000); // 10 second timeout
+
+    test("POST /api/auth/login - Should authenticate existing user", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        payload: {
+          email: testUser.email,
+          password: testUser.password,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data).toHaveProperty("token");
+      expect(data.data.email).toBe(testUser.email);
+    });
+
+    test("POST /api/auth/login - Should fail with invalid password", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        payload: {
+          email: testUser.email,
+          password: "WrongPassword",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(false);
+    });
+
+    test("POST /api/auth/signup - Should reject duplicate email", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/signup",
+        payload: testUser,
+      });
+
+      expect(response.statusCode).toBe(400);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("already exist");
+    });
+
+    test("POST /api/auth/logout - Should clear session", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/logout",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+    });
   });
 
-  describe("API Response Format Integration Tests", () => {
-    describe("Success Response Format", () => {
-      test("success response should have correct structure", () => {
-        const successResponse = {
-          statusCode: 201,
-          data: {
-            _id: "123",
-            email: "test@example.com",
-            first_name: "John",
-            last_name: "Doe",
-          },
-          success: true,
-        };
-
-        expect(successResponse).toHaveProperty("statusCode");
-        expect(successResponse).toHaveProperty("data");
-        expect(successResponse).toHaveProperty("success");
-        expect(successResponse.success).toBe(true);
+  describe("Blog CRUD Operations", () => {
+    test("POST /api/blogs - Should create a new blog", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/blogs",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: testBlog,
       });
 
-      test("data object should contain user fields", () => {
-        const userData = {
-          _id: "123",
-          email: "test@example.com",
-          first_name: "John",
-          last_name: "Doe",
-        };
-
-        expect(userData).toHaveProperty("_id");
-        expect(userData).toHaveProperty("email");
-        expect(userData).toHaveProperty("first_name");
-        expect(userData).toHaveProperty("last_name");
-      });
-
-      test("password should never be in response", () => {
-        const userData = {
-          _id: "123",
-          email: "test@example.com",
-          first_name: "John",
-          last_name: "Doe",
-        };
-
-        expect(userData).not.toHaveProperty("password");
-      });
+      expect(response.statusCode).toBe(201);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data).toHaveProperty("_id");
+      expect(data.data.title).toBe(testBlog.title);
+      expect(data.data.state).toBe("draft");
+      expect(data.data.reading_time).toBeGreaterThan(0);
+      blogId = data.data._id;
     });
 
-    describe("Error Response Format", () => {
-      test("error response should have correct structure", () => {
-        const errorResponse = {
-          statusCode: 400,
-          error: "Invalid email format",
-          success: false,
-        };
-
-        expect(errorResponse).toHaveProperty("statusCode");
-        expect(errorResponse).toHaveProperty("error");
-        expect(errorResponse).toHaveProperty("success");
-        expect(errorResponse.success).toBe(false);
+    test("POST /api/blogs - Should reject without authentication", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/blogs",
+        payload: testBlog,
       });
 
-      test("error status codes should be valid HTTP codes", () => {
-        const validErrorCodes = [400, 401, 403, 404, 500];
-        const errorStatusCode = 401;
-
-        expect(validErrorCodes.includes(errorStatusCode)).toBe(true);
-      });
+      expect(response.statusCode).toBe(401);
     });
 
-    describe("Blog CRUD Operations", () => {
-      test("create blog should have required fields", () => {
-        const newBlog = {
-          _id: "blog123",
-          author: "user123",
-          title: "Test Blog",
-          description: "Test Description",
-          body: "This is a test blog post with enough content",
-          state: "draft",
-          read_count: 0,
-          reading_time: 1,
-          tags: ["test"],
-          createdAt: new Date(),
-        };
-
-        expect(newBlog).toHaveProperty("title");
-        expect(newBlog).toHaveProperty("body");
-        expect(newBlog).toHaveProperty("author");
-        expect(newBlog).toHaveProperty("state");
-        expect(newBlog.state).toBe("draft");
+    test("GET /api/blogs - Should retrieve paginated published blogs", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/blogs?page=1&limit=10",
       });
 
-      test("new blog should start with draft state", () => {
-        const newBlog = {
-          state: "draft",
-        };
-
-        expect(newBlog.state).toBe("draft");
-      });
-
-      test("blog should start with read_count of 0", () => {
-        const newBlog = {
-          read_count: 0,
-        };
-
-        expect(newBlog.read_count).toBe(0);
-      });
-
-      test("published blog should increment read_count on access", () => {
-        const blog = {
-          state: "published",
-          read_count: 5,
-        };
-
-        const viewedBlog = {
-          ...blog,
-          read_count: blog.read_count + 1,
-        };
-
-        expect(viewedBlog.read_count).toBe(6);
-      });
-
-      test("update blog should preserve author", () => {
-        const originalBlog = {
-          _id: "blog123",
-          author: "user123",
-          title: "Original Title",
-          body: "Original body with enough content",
-        };
-
-        const updatedBlog = {
-          ...originalBlog,
-          title: "Updated Title",
-          body: "Updated body with enough content here",
-        };
-
-        expect(updatedBlog.author).toBe(originalBlog.author);
-        expect(updatedBlog.title).not.toBe(originalBlog.title);
-      });
-
-      test("delete blog should remove it", () => {
-        const blogs = [
-          { _id: "blog1", title: "Blog 1" },
-          { _id: "blog2", title: "Blog 2" },
-          { _id: "blog3", title: "Blog 3" },
-        ];
-
-        const deletedBlogs = blogs.filter((b) => b._id !== "blog2");
-
-        expect(deletedBlogs.length).toBe(2);
-        expect(deletedBlogs.find((b) => b._id === "blog2")).toBeUndefined();
-      });
-
-      test("blog state can toggle between draft and published", () => {
-        let blog = { state: "draft" };
-
-        blog.state = "published";
-        expect(blog.state).toBe("published");
-
-        blog.state = "draft";
-        expect(blog.state).toBe("draft");
-      });
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data).toHaveProperty("data");
+      expect(data.data).toHaveProperty("pagination");
+      expect(Array.isArray(data.data.data)).toBe(true);
     });
 
-    describe("Authorization Logic", () => {
-      test("user should not modify other user's blog", () => {
-        const blog = {
-          author: "user1",
-          title: "User1's Blog",
-        };
-
-        const currentUserId = "user2";
-        const isAuthorized = blog.author === currentUserId;
-
-        expect(isAuthorized).toBe(false);
+    test("GET /api/blogs/:id - Should retrieve single published blog", async () => {
+      // First publish a blog
+      await app.inject({
+        method: "PATCH",
+        url: `/api/blogs/${blogId}/state`,
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: { state: "published" },
       });
 
-      test("user should modify own blog", () => {
-        const blog = {
-          author: "user1",
-          title: "User1's Blog",
-        };
-
-        const currentUserId = "user1";
-        const isAuthorized = blog.author === currentUserId;
-
-        expect(isAuthorized).toBe(true);
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/blogs/${blogId}`,
       });
 
-      test("published blogs should be viewable by anyone", () => {
-        const blog = {
-          state: "published",
-        };
-
-        const canViewPublished = blog.state === "published";
-
-        expect(canViewPublished).toBe(true);
-      });
-
-      test("draft blogs should only be viewable by owner", () => {
-        const blog = {
-          author: "user1",
-          state: "draft",
-        };
-
-        const currentUserId = "user2";
-        const isOwner = blog.author === currentUserId;
-        const canView = blog.state !== "draft" || isOwner;
-
-        expect(canView).toBe(false);
-      });
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data.title).toBe(testBlog.title);
+      expect(data.data.read_count).toBeGreaterThanOrEqual(0);
     });
 
-    describe("Pagination & Search", () => {
-      test("pagination should have page and limit", () => {
-        const pagination = {
-          currentPage: 1,
-          totalPages: 5,
-          totalBlogs: 100,
-          blogsPerPage: 20,
-        };
-
-        expect(pagination).toHaveProperty("currentPage");
-        expect(pagination).toHaveProperty("totalPages");
-        expect(pagination).toHaveProperty("totalBlogs");
-        expect(pagination.blogsPerPage).toBe(20);
+    test("GET /api/blogs/:id - Should increment read count on view", async () => {
+      const response1 = await app.inject({
+        method: "GET",
+        url: `/api/blogs/${blogId}`,
       });
 
-      test("page 1 should contain first 20 blogs", () => {
-        const blogs = Array(100)
-          .fill(0)
-          .map((_, i) => ({ _id: String(i), title: `Blog ${i}` }));
-        const page1 = blogs.slice(0, 20);
+      const data1 = JSON.parse(response1.body);
+      const initialReadCount = data1.data.read_count;
 
-        expect(page1.length).toBe(20);
-        expect(page1[0]._id).toBe("0");
-        expect(page1[19]._id).toBe("19");
+      const response2 = await app.inject({
+        method: "GET",
+        url: `/api/blogs/${blogId}`,
       });
 
-      test("page 2 should contain blogs 20-39", () => {
-        const blogs = Array(100)
-          .fill(0)
-          .map((_, i) => ({ _id: String(i), title: `Blog ${i}` }));
-        const page2 = blogs.slice(20, 40);
-
-        expect(page2.length).toBe(20);
-        expect(page2[0]._id).toBe("20");
-        expect(page2[19]._id).toBe("39");
-      });
-
-      test("search should find blogs by title", () => {
-        const blogs = [
-          { title: "React Tutorial" },
-          { title: "Vue Guide" },
-          { title: "React Advanced" },
-        ];
-
-        const searchResults = blogs.filter((b) =>
-          b.title.toLowerCase().includes("react"),
-        );
-
-        expect(searchResults.length).toBe(2);
-      });
-
-      test("filter by state should separate draft and published", () => {
-        const blogs = [
-          { title: "Blog 1", state: "draft" },
-          { title: "Blog 2", state: "published" },
-          { title: "Blog 3", state: "draft" },
-          { title: "Blog 4", state: "published" },
-        ];
-
-        const published = blogs.filter((b) => b.state === "published");
-        const drafts = blogs.filter((b) => b.state === "draft");
-
-        expect(published.length).toBe(2);
-        expect(drafts.length).toBe(2);
-      });
-
-      test("sort by read_count should order blogs correctly", () => {
-        const blogs = [
-          { title: "Blog 1", read_count: 10 },
-          { title: "Blog 2", read_count: 50 },
-          { title: "Blog 3", read_count: 30 },
-        ];
-
-        const sorted = [...blogs].sort((a, b) => b.read_count - a.read_count);
-
-        expect(sorted[0].read_count).toBe(50);
-        expect(sorted[1].read_count).toBe(30);
-        expect(sorted[2].read_count).toBe(10);
-      });
+      const data2 = JSON.parse(response2.body);
+      expect(data2.data.read_count).toBe(initialReadCount + 1);
     });
 
-    describe("JWT & Authentication", () => {
-      test("token should be included in auth response", () => {
-        const authResponse = {
-          _id: "user123",
-          email: "test@example.com",
-          token: "jwt_token_here",
-        };
+    test("PUT /api/blogs/:id - Should update blog content", async () => {
+      const updatedBlog = {
+        ...testBlog,
+        title: "Updated Test Blog",
+        description: "Updated description for testing",
+      };
 
-        expect(authResponse).toHaveProperty("token");
-        expect(authResponse.token).not.toBeNull();
+      const response = await app.inject({
+        method: "PUT",
+        url: `/api/blogs/${blogId}`,
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: updatedBlog,
       });
 
-      test("authorization header should have Bearer format", () => {
-        const authHeader = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data.title).toBe("Updated Test Blog");
+    });
 
-        expect(authHeader.startsWith("Bearer ")).toBe(true);
+    test("PATCH /api/blogs/:id/state - Should toggle blog state", async () => {
+      const response = await app.inject({
+        method: "PATCH",
+        url: `/api/blogs/${blogId}/state`,
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: { state: "draft" },
       });
 
-      test("missing token should be unauthorized", () => {
-        const hasToken = false;
-        const isAuthorized = hasToken;
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(data.data.state).toBe("draft");
+    });
 
-        expect(isAuthorized).toBe(false);
+    test("GET /api/blogs/user/my-blogs - Should retrieve user's own blogs", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/blogs/user/my-blogs",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
       });
+
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data.data)).toBe(true);
+    });
+
+    test("DELETE /api/blogs/:id - Should delete blog", async () => {
+      // Create a blog to delete
+      const createResponse = await app.inject({
+        method: "POST",
+        url: "/api/blogs",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: {
+          ...testBlog,
+          title: "Blog to Delete",
+        },
+      });
+
+      const createData = JSON.parse(createResponse.body);
+      const deleteId = createData.data._id;
+
+      const deleteResponse = await app.inject({
+        method: "DELETE",
+        url: `/api/blogs/${deleteId}`,
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      expect(deleteResponse.statusCode).toBe(200);
+      const data = JSON.parse(deleteResponse.body);
+      expect(data.success).toBe(true);
+
+      // Verify deletion
+      const getResponse = await app.inject({
+        method: "GET",
+        url: `/api/blogs/${deleteId}`,
+      });
+
+      expect(getResponse.statusCode).toBe(404);
+    });
+  });
+
+  describe("Search, Filter & Pagination", () => {
+    test("GET /api/blogs?search=Updated - Should find blog by title", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/blogs?search=Updated&page=1&limit=10",
+      });
+
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+    });
+
+    test("GET /api/blogs?sortBy=read_count&order=desc - Should sort by read count", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/blogs?page=1&limit=10&sortBy=read_count&order=desc",
+      });
+
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+    });
+
+    test("GET /api/blogs/user/my-blogs?state=draft - Should filter user blogs by state", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/blogs/user/my-blogs?state=draft",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data.data)).toBe(true);
+    });
+
+    test("Pagination should have correct structure", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/blogs?page=1&limit=5",
+      });
+
+      const data = JSON.parse(response.body);
+      expect(data.data.pagination).toHaveProperty("currentPage");
+      expect(data.data.pagination).toHaveProperty("totalPages");
+      expect(data.data.pagination).toHaveProperty("totalBlogs");
+      expect(data.data.pagination).toHaveProperty("blogsPerPage");
+    });
+  });
+
+  describe("Authorization & Permission Tests", () => {
+    test("Should not delete another user's blog", async () => {
+      // Create second user
+      const user2 = {
+        email: "testuser2@example.com",
+        password: "TestPassword123",
+        first_name: "Test2",
+        last_name: "User2",
+      };
+
+      const signupResponse = await app.inject({
+        method: "POST",
+        url: "/api/auth/signup",
+        payload: user2,
+      });
+
+      const signupData = JSON.parse(signupResponse.body);
+      const user2Token = signupData.data.token;
+
+      // Try to delete original user's blog with user2
+      const deleteResponse = await app.inject({
+        method: "DELETE",
+        url: `/api/blogs/${blogId}`,
+        headers: {
+          authorization: `Bearer ${user2Token}`,
+        },
+      });
+
+      expect(deleteResponse.statusCode).toBe(403);
+    });
+
+    test("Should not update another user's blog", async () => {
+      const user2 = {
+        email: "testuser3@example.com",
+        password: "TestPassword123",
+        first_name: "Test3",
+        last_name: "User3",
+      };
+
+      const signupResponse = await app.inject({
+        method: "POST",
+        url: "/api/auth/signup",
+        payload: user2,
+      });
+
+      const signupData = JSON.parse(signupResponse.body);
+      const user2Token = signupData.data.token;
+
+      const updateResponse = await app.inject({
+        method: "PUT",
+        url: `/api/blogs/${blogId}`,
+        headers: {
+          authorization: `Bearer ${user2Token}`,
+        },
+        payload: {
+          title: "Hacked Title",
+          description: testBlog.description,
+          body: testBlog.body,
+        },
+      });
+
+      expect(updateResponse.statusCode).toBe(403);
+    });
+  });
+
+  describe("Validation Tests", () => {
+    test("POST /api/blogs - Should reject short title", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/blogs",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: {
+          ...testBlog,
+          title: "ABC", // Too short
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(false);
+    });
+
+    test("POST /api/blogs - Should reject short body", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/blogs",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
+        payload: {
+          ...testBlog,
+          body: "Too short", // Less than 50 chars
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    test("POST /api/auth/signup - Should reject invalid email", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/signup",
+        payload: {
+          ...testUser,
+          email: "notanemail",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const data = JSON.parse(response.body);
+      expect(data.success).toBe(false);
+    });
+
+    test("POST /api/auth/signup - Should reject short password", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/signup",
+        payload: {
+          ...testUser,
+          email: "unique@example.com",
+          password: "short",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
     });
   });
 });

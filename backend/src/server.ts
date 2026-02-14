@@ -27,7 +27,9 @@ const HOST = process.env.FASTIFY_HOST || "0.0.0.0";
 const configurePlugins = async () => {
   // CORS - Allow frontend to connect
   await app.register(fastifyCors, {
-    origin: ["https://taskapp-cvmv.onrender.com"],
+    origin: process.env.NODE_ENV === "production" 
+      ? ["https://taskapp-cvmv.onrender.com"]
+      : ["http://localhost:5000", "http://localhost:3000", "http://127.0.0.1:5000"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   });

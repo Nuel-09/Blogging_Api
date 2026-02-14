@@ -96,6 +96,7 @@ export const signup = async (request: FastifyRequest, reply: FastifyReply) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
       maxAge: 3600000, // 1 hour
     });
 
@@ -142,7 +143,7 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
     // Compare passwords
     const isPasswordValid = await bcryptjs.compare(password, user.password);
     if (!isPasswordValid) {
-      return handleError(reply, { message: "invalid email or password" });
+      return handleError(reply, { message: "invalid email or password" }, 401);
     }
 
     // JWT PATCH: Issue JWT
@@ -153,6 +154,7 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
       maxAge: 3600000, // 1 hour
     });
 

@@ -77,19 +77,19 @@
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ first_name, last_name, email, password })
         });
         
         const data = await response.json();
         
-        if (response.ok && data.token) {
-          // Store token
-          localStorage.setItem('authToken', data.token);
+        if (response.ok && data.success) {
+          // Cookie is automatically set, just redirect to dashboard
           window.location.href = '/dashboard';
         } else {
           const errorDiv = document.createElement('div');
           errorDiv.className = 'alert alert-error';
-          errorDiv.textContent = data.error || 'Signup failed';
+          errorDiv.textContent = data.data?.error || data.error || 'Signup failed';
           const form = document.getElementById('signupForm');
           form.parentNode.insertBefore(errorDiv, form);
         }
